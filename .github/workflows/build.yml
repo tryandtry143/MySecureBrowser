@@ -15,7 +15,7 @@ jobs:
       
     - name: Setup Build Environment
       run: |
-        Invoke-WebRequest -Uri "https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-latest.exe" -OutFile "MozillaBuildSetup.exe"
+        Invoke-WebRequest -Uri "https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-4.0.2.exe" -OutFile "MozillaBuildSetup.exe"
         Start-Process -FilePath ".\MozillaBuildSetup.exe" -ArgumentList "/S" -Wait
         
     - name: Download Mozilla Gecko Source
