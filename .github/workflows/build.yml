@@ -1,0 +1,52 @@
+name: Build Secure Tor Browser (Windows)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout Builder Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Build Environment
+      run: |
+        Invoke-WebRequest -Uri "https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-latest.exe" -OutFile "MozillaBuildSetup.exe"
+        Start-Process -FilePath ".\MozillaBuildSetup.exe" -ArgumentList "/S" -Wait
+        
+    - name: Download Mozilla Gecko Source
+      run: |
+        git clone --depth 1 https://github.com/mozilla/gecko-dev.git mozilla-central
+        
+    - name: Apply Security Patches
+      run: |
+        cd mozilla-central
+        git apply ../proxy.patch
+        git apply ../prefs.patch
+        
+    - name: Create mozconfig
+      run: |
+        Set-Content -Path "mozilla-central\.mozconfig" -Value @"
+        ac_add_options --enable-application=browser
+        ac_add_options --disable-crashreporter
+        ac_add_options --disable-updater
+        ac_add_options --disable-tests
+        ac_add_options --enable-optimize
+        ac_add_options --enable-release
+        ac_add_options --disable-lto
+        ac_add_options --disable-elf-hack
+        "@
+        
+    - name: Build Secure Browser
+      run: |
+        C:\mozilla-build\start-shell.bat -c "cd mozilla-central && ./mach bootstrap --application-choice=browser --no-interactive && ./mach build"
+        
+    - name: Upload Browser Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: firefox-secure-build-windows
+        path: mozilla-central/obj-*/dist/firefox/
