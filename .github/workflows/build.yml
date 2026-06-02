@@ -25,8 +25,39 @@ jobs:
     - name: Apply Security Patches
       run: |
         cd mozilla-central
-        git apply ../proxy.patch
-        git apply ../prefs.patch
+        Set-Content -Path "patch.py" -Value @"
+        import os
+        path = 'netwerk/base/nsProtocolProxyService.cpp'
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        target = 'nsProtocolProxyService::Resolve_Internal(nsIChannel* channel,'
+        idx = content.find(target)
+        if idx != -1:
+            brace_idx = content.find('{', idx)
+            if brace_idx != -1:
+                insert_code = '''
+          // TOR ENFORCEMENT: Hardcoded SOCKS5 proxy to localhost:9150
+          nsCOMPtr<nsIProxyInfo> torProxy;
+          nsresult rv = NewProxyInfo("socks"_ns, "127.0.0.1"_ns, 9150,
+                                     nsIProxyInfo::TRANSPARENT_PROXY_RESOLVES_HOST,
+                                     UINT32_MAX, nullptr, getter_AddRefs(torProxy));
+          if (NS_SUCCEEDED(rv)) {
+            torProxy.forget(result);
+            return NS_OK;
+          }
+        '''
+                content = content[:brace_idx+1] + '\n' + insert_code + content[brace_idx+1:]
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+        
+        prefs_path = 'browser/app/profile/firefox.js'
+        with open(prefs_path, 'a', encoding='utf-8') as f:
+            f.write('\npref("privacy.resistFingerprinting", true);\n')
+            f.write('pref("javascript.options.wasm", false);\n')
+            f.write('pref("dom.webaudio.enabled", false);\n')
+            f.write('pref("dom.battery.enabled", false);\n')
+        "@
+        python patch.py
         
     - name: Create mozconfig
       run: |
