@@ -41,7 +41,7 @@ jobs:
         
     - name: Inject Secure AutoConfig
       run: |
-        $distPath = Get-ChildItem -Path mozilla-central -Directory -Filter "obj-*" | Select-Object -First 1 | Join-Path -ChildPath "dist\firefox"
+        $distPath = Get-ChildItem -Path mozilla-central -Directory -Filter "obj-*" | Select-Object -First 1 | Join-Path -ChildPath "dist\bin"
         $prefPath = Join-Path $distPath "defaults\pref"
         if (-not (Test-Path $prefPath)) { New-Item -ItemType Directory -Path $prefPath }
         
@@ -66,4 +66,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: firefox-secure-build-windows
-        path: mozilla-central/obj-*/dist/firefox/
+        path: mozilla-central/obj-*/dist/bin/
